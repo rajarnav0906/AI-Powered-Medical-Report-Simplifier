@@ -7,9 +7,11 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+const NORMALIZATION_MODEL = "models/gemini-2.5-pro";
+const SIMPLIFICATION_MODEL = "models/gemini-2.5-flash";
+
 /**
- * Retry wrapper for Gemini calls with exponential backoff.
- * Handles transient errors gracefully.
+ * Retry wrapper with exponential backoff for Gemini calls
  */
 const callGeminiWithRetry = async (model, prompt, maxRetries = 3) => {
   let lastError = null;
@@ -25,7 +27,9 @@ const callGeminiWithRetry = async (model, prompt, maxRetries = 3) => {
         err.message.includes("500 Internal Server Error")
       ) {
         const wait = Math.pow(2, attempt) * 1000;
-        console.warn(`Gemini call failed (attempt ${attempt + 1}). Retrying in ${wait / 1000}s...`);
+        console.warn(
+          `Gemini call failed (attempt ${attempt + 1}). Retrying in ${wait / 1000}s...`
+        );
         await new Promise((resolve) => setTimeout(resolve, wait));
       } else {
         throw err;
@@ -39,12 +43,12 @@ const callGeminiWithRetry = async (model, prompt, maxRetries = 3) => {
 };
 
 /**
- * Step 1: Normalize extracted raw text into structured medical tests.
+ * Step 1: Normalize medical tests
  */
 export const getNormalizedTests = async (rawText) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: NORMALIZATION_MODEL,
       generationConfig: { responseMimeType: "application/json" },
     });
 
@@ -64,11 +68,13 @@ export const getNormalizedTests = async (rawText) => {
 };
 
 /**
- * Step 2: Generate a patient-friendly summary & explanations.
+ * Step 2: Simplify into patient-friendly explanation
  */
 export const getSimplifiedSummary = async (testsJson) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({
+      model: SIMPLIFICATION_MODEL,
+    });
     const prompt = buildSimplificationPrompt(testsJson);
 
     const response = await callGeminiWithRetry(model, prompt);

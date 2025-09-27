@@ -2,7 +2,7 @@
 import { levenshteinDistance } from "../utils/levenshteinDistance.js";
 import { correctPhrase } from "../utils/spellCorrect.js";
 
-const SIMILARITY_THRESHOLD = 0.7;
+const SIMILARITY_THRESHOLD = 0.6;
 
 // Synonym map (helps ALT vs Alanine Transaminase, etc.)
 const synonymMap = {
