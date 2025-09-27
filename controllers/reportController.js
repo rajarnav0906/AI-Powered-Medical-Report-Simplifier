@@ -1,65 +1,75 @@
-import { extractTextFromImage } from "../services/ocrService.js";
+// controllers/reportController.js
 import { getNormalizedTests, getSimplifiedSummary } from "../services/aiService.js";
+import { getTextFromImage } from "../services/ocrService.js";
 import { checkForHallucinations } from "../services/validationService.js";
-import { correctPhrase } from "../utils/spellCorrect.js";
-
+import { refRanges } from "../utils/refRanges.js";
 
 export const simplifyReport = async (req, res) => {
   try {
-    let reportText = "";
+    let rawText = "";
+    let testsRaw = [];
 
-    // 1 -> Handle input
     if (req.file) {
-      console.log("OCR: Processing uploaded file...");
-      const buffer = req.file.buffer;
-      reportText = await extractTextFromImage(buffer);
+      console.log("📂 Processing uploaded file...");
+      const imageBuffer = req.file.buffer;
+      rawText = await getTextFromImage(imageBuffer);
     } else if (req.body.text) {
-      console.log("Using provided text...");
-      reportText = req.body.text;
+      console.log("✍️ Processing raw text from request body...");
+      rawText = req.body.text;
     } else {
-      return res.status(400).json({ error: "Provide either a file or text input." });
+      return res.status(400).json({ error: "File or Text input is required." });
     }
 
-    if (!reportText || reportText.trim().length === 0) {
-      return res.status(400).json({ error: "OCR/text extraction returned empty content." });
+    if (!rawText || rawText.trim() === "") {
+      return res.status(400).json({ error: "Extracted text is empty. Cannot process." });
     }
 
-    // 2 -> Normalize with Gemini
-    const normalized = await getNormalizedTests(reportText);
+    // Step 1: Collect raw extracted lines for debugging
+    testsRaw = rawText.split("\n").map((line) => line.trim()).filter((l) => l);
 
-    if (!normalized || normalized.length === 0) {
+    // Step 2: Normalize with Gemini
+    const normalized = await getNormalizedTests(rawText);
+
+    // Step 2.5: Add fallback reference ranges if missing
+    const normalizedWithRanges = normalized.map((t) => {
+      const hasRange = t.ref_range && t.ref_range.low != null && t.ref_range.high != null;
+      if (hasRange) return t;
+      const fallback = refRanges[t.name] || null;
+      return { ...t, ref_range: fallback };
+    });
+
+    if (normalizedWithRanges.length === 0) {
       return res.status(200).json({
+        tests_raw: testsRaw,
         tests: [],
         summary: "No recognizable medical test data found in input.",
         status: "ok",
       });
     }
 
-    // 3 -> Auto-correct spelling in test names
-    const correctedTests = normalized.map((test) => ({
-      ...test,
-      name: correctPhrase(test.name),
-    }));
-
-    // 4 -> Validate hallucinations
-    const validOutput = checkForHallucinations(reportText, correctedTests);
-    if (!validOutput) {
+    // Step 3: Guardrail validation
+    const isValid = checkForHallucinations(rawText, normalizedWithRanges);
+    if (!isValid) {
       return res.status(400).json({
         status: "unprocessed",
         reason: "Invalid AI output detected: hallucinated tests not found in original input.",
       });
     }
 
-    // 5 -> Summarize with Gemini
-    const summary = await getSimplifiedSummary(correctedTests);
+    // Step 4: Generate patient-friendly summary
+    const summary = await getSimplifiedSummary(normalizedWithRanges);
 
-    res.status(200).json({
-      tests: correctedTests,
+    // ✅ Final structured response
+    const finalResponse = {
+      tests_raw: testsRaw,
+      tests: normalizedWithRanges,
       summary,
       status: "ok",
-    });
-  } catch (err) {
-    console.error("Error in simplifyReport:", err.message);
-    res.status(500).json({ error: "Server error while simplifying report." });
+    };
+
+    res.status(200).json(finalResponse);
+  } catch (error) {
+    console.error("❌ Error in simplifyReport controller:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
   }
 };
