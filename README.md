@@ -144,7 +144,8 @@ Content-Type: application/json
     ],
     "summary": "Hello! We have your test results here. It looks like your Hemoglobin is a little low at 10.5 g/dL; Hemoglobin is a protein in your red blood cells that helps carry oxygen from your lungs to the rest of your body. Also, your WBC (White Blood Cells) count is a bit high at 12300 /uL; white blood cells are an important part of your immune system that help your body fight off infections and other issues. For a complete understanding and to discuss what these results mean for your health, please make sure to follow up with your doctor.",
     "status": "ok"
-}```
+}
+```
 
 ---
 
