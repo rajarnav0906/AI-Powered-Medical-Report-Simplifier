@@ -117,26 +117,34 @@ Content-Type: application/json
 **Response:**
 ```json
 {
-  "tests": [
-    {
-      "name": "Hemoglobin",
-      "value": 10.5,
-      "unit": "g/dL",
-      "status": "Low",
-      "ref_range": { "low": 13.5, "high": 17.5 }
-    },
-    {
-      "name": "WBC",
-      "value": 12300,
-      "unit": "/uL",
-      "status": "High",
-      "ref_range": { "low": 4000, "high": 11000 }
-    }
-  ],
-  "summary": "Your Hemoglobin is slightly low and your WBC count is high. Please discuss with your doctor.",
-  "status": "ok"
-}
-```
+    "tests_raw": [
+        "CBC Report: Hemglbin 10.5 g/dL (Low), WBC 12,300 /uL (High)"
+    ],
+    "tests": [
+        {
+            "name": "Hemoglobin",
+            "value": 10.5,
+            "unit": "g/dL",
+            "status": "Low",
+            "ref_range": {
+                "low": 13.5,
+                "high": 17.5
+            }
+        },
+        {
+            "name": "WBC",
+            "value": 12300,
+            "unit": "/uL",
+            "status": "High",
+            "ref_range": {
+                "low": 4500,
+                "high": 11000
+            }
+        }
+    ],
+    "summary": "Hello! We have your test results here. It looks like your Hemoglobin is a little low at 10.5 g/dL; Hemoglobin is a protein in your red blood cells that helps carry oxygen from your lungs to the rest of your body. Also, your WBC (White Blood Cells) count is a bit high at 12300 /uL; white blood cells are an important part of your immune system that help your body fight off infections and other issues. For a complete understanding and to discuss what these results mean for your health, please make sure to follow up with your doctor.",
+    "status": "ok"
+}```
 
 ---
 
